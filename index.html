@@ -3,39 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Red de Transporte - Flujo Máximo</title>
-  <!-- Vue 3 vía CDN -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <title>Flujo Máximo</title>
   <style>
     body {
       margin: 0;
-      padding: 20px;
+      padding: 24px 12px;
       background-color: #f1f5f9;
       font-family: system-ui, -apple-system, sans-serif;
+      color: #1e293b;
       display: flex;
       justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
     }
 
     .card {
       width: 100%;
       max-width: 530px;
-      margin: 0 auto;
-      padding: 18px;
       background: #ffffff;
+      padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
-      color: #1e293b;
-      box-sizing: border-box;
     }
 
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
     .header h3 { margin: 0; font-size: 17px; }
@@ -47,7 +40,6 @@
       padding: 6px 12px;
       border-radius: 8px;
       text-align: right;
-      min-width: 90px;
     }
 
     .total-box span { display: block; font-size: 10px; color: #1d4ed8; text-transform: uppercase; font-weight: 600; }
@@ -94,7 +86,6 @@
       padding: 4px 8px;
       font-size: 12px;
       color: #334155;
-      font-weight: 500;
     }
 
     .chip input {
@@ -109,7 +100,7 @@
     .btn-calcular {
       width: 100%;
       margin-top: 14px;
-      padding: 9px;
+      padding: 10px;
       background-color: #2563eb;
       color: #ffffff;
       border: none;
@@ -117,7 +108,6 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.2s ease;
     }
 
     .btn-calcular:hover {
@@ -126,170 +116,168 @@
   </style>
 </head>
 <body>
-  <div id="app">
-    <div class="card">
-      <div class="header">
-        <div>
-          <h3>Red de Transporte</h3>
-        </div>
-        <div class="total-box">
-          <span>Flujo Máximo</span>
-          <strong>{{ calculado ? flujoMaximo + ' u/h' : '--' }}</strong>
-        </div>
+  <div class="card">
+    <div class="header">
+      <div>
+        <h3>Red de Transporte</h3>
       </div>
-
-      <div class="svg-container">
-        <svg viewBox="0 0 480 220">
-          <defs>
-            <marker id="flecha" viewBox="0 0 10 10" refX="21" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
-            </marker>
-          </defs>
-          <g v-for="(r, i) in rutas" :key="'r-' + i">
-            <line
-                :x1="nodo(r.de).x" :y1="nodo(r.de).y"
-                :x2="nodo(r.a).x"  :y2="nodo(r.a).y"
-                :stroke="calculado && r.flujo === r.cap && r.cap > 0 ? '#ef4444' : (calculado && r.flujo > 0 ? '#3b82f6' : '#cbd5e1')"
-                :stroke-width="calculado && r.flujo > 0 ? 2.5 : 1.5"
-                marker-end="url(#flecha)"
-            />
-            <text
-                :x="puntoMedio(r.de, r.a, 'x')"
-                :y="puntoMedio(r.de, r.a, 'y') - 6"
-                class="txt-arista"
-                :class="{ saturado: calculado && r.flujo === r.cap && r.cap > 0 }"
-            >
-              ({{ r.cap }};{{ r.flujo }})
-            </text>
-          </g>
-          <g v-for="n in nodos" :key="'n-' + n.id">
-            <circle :cx="n.x" :cy="n.y" r="16" :class="['nodo', n.tipo]" />
-            <text :x="n.x" :y="n.y + 4" class="txt-nodo">{{ n.id }}</text>
-            <text :x="n.x" :y="n.y + 28" class="txt-nombre">{{ n.nombre }}</text>
-          </g>
-        </svg>
+      <div class="total-box">
+        <span>Flujo Máximo</span>
+        <strong id="flujo-maximo">--</strong>
       </div>
-
-      <div class="controles-titulo">Ajustar capacidades:</div>
-      <div class="controles">
-        <div v-for="(r, i) in rutas" :key="i" class="chip">
-          <span>{{ r.de }} &rarr; {{ r.a }}</span>
-          <input
-              type="number"
-              min="0"
-              max="99"
-              v-model.number="r.cap"
-              @input="onCapacidadChange"
-          />
-        </div>
-      </div>
-
-      <button class="btn-calcular" @click="resolver">
-        Calcular Flujo Máximo
-      </button>
     </div>
+
+    <div class="svg-container">
+      <svg viewBox="0 0 480 220" id="grafo-svg">
+        <defs>
+          <marker id="flecha" viewBox="0 0 10 10" refX="21" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+          </marker>
+        </defs>
+        <g id="capa-aristas"></g>
+        <g id="capa-nodos"></g>
+      </svg>
+    </div>
+
+    <div class="controles-titulo">Ingreso manual de capacidades:</div>
+    <div class="controles" id="contenedor-controles"></div>
+
+    <button class="btn-calcular" id="btn-calcular">
+      Calcular Flujo Máximo
+    </button>
   </div>
 
   <script>
-    const { createApp, ref } = Vue
+    const totalNodos = 6;
+    const fuente = 0;
+    const sumidero = 5;
 
-    createApp({
-      setup() {
-        const nodos = [
-          { id: 0, nombre: 'S (Origen)', x: 45, y: 110, tipo: 'fuente' },
-          { id: 1, nombre: 'A', x: 160, y: 55, tipo: 'intermedio' },
-          { id: 2, nombre: 'B', x: 160, y: 165, tipo: 'intermedio' },
-          { id: 3, nombre: 'C', x: 300, y: 55, tipo: 'intermedio' },
-          { id: 4, nombre: 'D', x: 300, y: 165, tipo: 'intermedio' },
-          { id: 5, nombre: 'T (Destino)', x: 435, y: 110, tipo: 'sumidero' }
-        ]
+    const nodos = [
+      { id: 0, nombre: 'S', x: 45, y: 110, tipo: 'fuente' },
+      { id: 1, nombre: 'A', x: 160, y: 55, tipo: 'intermedio' },
+      { id: 2, nombre: 'B', x: 160, y: 165, tipo: 'intermedio' },
+      { id: 3, nombre: 'C', x: 300, y: 55, tipo: 'intermedio' },
+      { id: 4, nombre: 'D', x: 300, y: 165, tipo: 'intermedio' },
+      { id: 5, nombre: 'T', x: 435, y: 110, tipo: 'sumidero' }
+    ];
 
-        const rutas = ref([
-          { de: 0, a: 1, cap: 10, flujo: 0 },
-          { de: 0, a: 2, cap: 10, flujo: 0 },
-          { de: 1, a: 2, cap: 2,  flujo: 0 },
-          { de: 1, a: 3, cap: 8,  flujo: 0 },
-          { de: 2, a: 4, cap: 9,  flujo: 0 },
-          { de: 3, a: 4, cap: 3,  flujo: 0 },
-          { de: 3, a: 5, cap: 7,  flujo: 0 },
-          { de: 4, a: 5, cap: 8,  flujo: 0 }
-        ])
+    const rutas = [
+      { de: 0, a: 1, cap: 10, flujo: 0 },
+      { de: 0, a: 2, cap: 10, flujo: 0 },
+      { de: 1, a: 2, cap: 2,  flujo: 0 },
+      { de: 1, a: 3, cap: 8,  flujo: 0 },
+      { de: 2, a: 4, cap: 9,  flujo: 0 },
+      { de: 3, a: 4, cap: 3,  flujo: 0 },
+      { de: 3, a: 5, cap: 7,  flujo: 0 },
+      { de: 4, a: 5, cap: 8,  flujo: 0 }
+    ];
 
-        const flujoMaximo = ref(0)
-        const calculado = ref(false)
-        const totalNodos = 6
-        const fuente = 0
-        const sumidero = 5
+    let calculado = false;
 
-        const resolver = () => {
-          const residual = Array.from({ length: totalNodos }, () => Array(totalNodos).fill(0))
-          rutas.value.forEach(r => {
-            residual[r.de][r.a] = r.cap
-            r.flujo = 0
-          })
+    const nodo = (id) => nodos.find(n => n.id === id);
+    const puntoMedio = (de, a, eje) => (nodo(de)[eje] + nodo(a)[eje]) / 2;
 
-          let maxFlow = 0
+    function renderGrafo() {
+      const capaAristas = document.getElementById('capa-aristas');
+      const capaNodos = document.getElementById('capa-nodos');
 
-          while (true) {
-            const padre = Array(totalNodos).fill(-1)
-            const cola = [fuente]
-            padre[fuente] = fuente
+      capaAristas.innerHTML = rutas.map(r => {
+        const u = nodo(r.de);
+        const v = nodo(r.a);
+        const saturado = calculado && r.flujo === r.cap && r.cap > 0;
+        let color = '#cbd5e1';
+        let grosor = 1.5;
 
-            while (cola.length > 0 && padre[sumidero] === -1) {
-              const u = cola.shift()
-              for (let v = 0; v < totalNodos; v++) {
-                if (padre[v] === -1 && residual[u][v] > 0) {
-                  padre[v] = u
-                  cola.push(v)
-                }
-              }
-            }
+        if (calculado && saturado) {
+          color = '#ef4444';
+          grosor = 2.5;
+        } else if (calculado && r.flujo > 0) {
+          color = '#3b82f6';
+          grosor = 2.5;
+        }
 
-            if (padre[sumidero] === -1) break
+        const midX = puntoMedio(r.de, r.a, 'x');
+        const midY = puntoMedio(r.de, r.a, 'y') - 6;
 
-            let cuello = Infinity
-            for (let v = sumidero; v !== fuente; v = padre[v]) {
-              cuello = Math.min(cuello, residual[padre[v]][v])
-            }
+        return `
+          <line x1="${u.x}" y1="${u.y}" x2="${v.x}" y2="${v.y}" stroke="${color}" stroke-width="${grosor}" marker-end="url(#flecha)"/>
+          <text x="${midX}" y="${midY}" class="txt-arista ${saturado ? 'saturado' : ''}">(${r.cap};${r.flujo})</text>
+        `;
+      }).join('');
 
-            for (let v = sumidero; v !== fuente; v = padre[v]) {
-              const u = padre[v]
-              residual[u][v] -= cuello
-              residual[v][u] += cuello
-            }
+      capaNodos.innerHTML = nodos.map(n => `
+        <circle cx="${n.x}" cy="${n.y}" r="16" class="nodo ${n.tipo}" />
+        <text x="${n.x}" y="${n.y + 4}" class="txt-nodo">${n.id}</text>
+        <text x="${n.x}" y="${n.y + 28}" class="txt-nombre">${n.nombre}</text>
+      `).join('');
+    }
 
-            maxFlow += cuello
+    function renderControles() {
+      const contenedor = document.getElementById('contenedor-controles');
+      contenedor.innerHTML = rutas.map((r, i) => `
+        <div class="chip">
+          <span>${r.de} &rarr; ${r.a}</span>
+          <input type="number" min="0" max="99" value="${r.cap}" data-index="${i}" />
+        </div>
+      `).join('');
+
+      contenedor.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.index);
+          rutas[idx].cap = parseInt(e.target.value) || 0;
+          calculado = false;
+          rutas.forEach(r => r.flujo = 0);
+          document.getElementById('flujo-maximo').textContent = '--';
+          renderGrafo();
+        });
+      });
+    }
+    function dfs(u, t, visitados, residual, flujoMin) {
+      if (u === t) return flujoMin;
+      visitados[u] = true;
+
+      for (let v = 0; v < totalNodos; v++) {
+        if (!visitados[v] && residual[u][v] > 0) {
+          const cuello = dfs(v, t, visitados, residual, Math.min(flujoMin, residual[u][v]));
+          if (cuello > 0) {
+            residual[u][v] -= cuello;
+            residual[v][u] += cuello;
+            return cuello;
           }
-
-          rutas.value.forEach(r => {
-            r.flujo = r.cap - residual[r.de][r.a]
-          })
-
-          flujoMaximo.value = maxFlow
-          calculado.value = true
-        }
-
-        const onCapacidadChange = () => {
-          calculado.value = false
-          flujoMaximo.value = 0
-          rutas.value.forEach(r => (r.flujo = 0))
-        }
-
-        const nodo = (id) => nodos.find(n => n.id === id)
-        const puntoMedio = (de, a, eje) => (nodo(de)[eje] + nodo(a)[eje]) / 2
-
-        return {
-          nodos,
-          rutas,
-          flujoMaximo,
-          calculado,
-          resolver,
-          onCapacidadChange,
-          nodo,
-          puntoMedio
         }
       }
-    }).mount('#app')
+      return 0;
+    }
+
+    function resolver() {
+      const residual = Array.from({ length: totalNodos }, () => Array(totalNodos).fill(0));
+      rutas.forEach(r => {
+        residual[r.de][r.a] = r.cap;
+        r.flujo = 0;
+      });
+
+      let maxFlow = 0;
+
+      while (true) {
+        const visitados = Array(totalNodos).fill(false);
+        const cuello = dfs(fuente, sumidero, visitados, residual, Infinity);
+        if (cuello === 0) break;
+        maxFlow += cuello;
+      }
+
+      rutas.forEach(r => {
+        r.flujo = r.cap - residual[r.de][r.a];
+      });
+
+      calculado = true;
+      document.getElementById('flujo-maximo').textContent = `${maxFlow} u/h`;
+      renderGrafo();
+    }
+
+    document.getElementById('btn-calcular').addEventListener('click', resolver);
+
+    renderGrafo();
+    renderControles();
   </script>
 </body>
 </html>
