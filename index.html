@@ -3,281 +3,587 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flujo Máximo</title>
+  <title>Simulador de Flujo Máximo - Ford-Fulkerson</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 24px 12px;
-      background-color: #f1f5f9;
       font-family: system-ui, -apple-system, sans-serif;
-      color: #1e293b;
-      display: flex;
-      justify-content: center;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 530px;
-      background: #ffffff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .header h3 { margin: 0; font-size: 17px; }
-    .header p { margin: 2px 0 0; font-size: 12px; color: #64748b; }
-
-    .total-box {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      padding: 6px 12px;
-      border-radius: 8px;
-      text-align: right;
-    }
-
-    .total-box span { display: block; font-size: 10px; color: #1d4ed8; text-transform: uppercase; font-weight: 600; }
-    .total-box strong { font-size: 16px; color: #1e40af; }
-
-    .svg-container {
       background: #f8fafc;
+      color: #0f172a;
+      padding: 20px;
+    }
+    .app-card {
+      max-width: 950px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 20px;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 8px;
     }
+    h2 { margin: 0 0 4px 0; font-size: 20px; }
+    .subtitle { color: #64748b; font-size: 13px; margin-bottom: 16px; }
 
-    svg { width: 100%; height: auto; display: block; }
-
-    .nodo.fuente { fill: #10b981; }
-    .nodo.sumidero { fill: #8b5cf6; }
-    .nodo.intermedio { fill: #3b82f6; }
-
-    .txt-nodo { fill: #fff; font-size: 12px; font-weight: bold; text-anchor: middle; }
-    .txt-nombre { font-size: 10px; fill: #475569; text-anchor: middle; font-weight: 500; }
-    .txt-arista { font-size: 10px; fill: #475569; font-weight: 600; text-anchor: middle; }
-    .txt-arista.saturado { fill: #ef4444; font-weight: bold; }
-
-    .controles-titulo {
-      font-size: 12px;
-      font-weight: 600;
-      color: #64748b;
-      margin-top: 14px;
-    }
-
-    .controles {
+    .toolbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 6px;
+      gap: 10px;
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      align-items: center;
     }
-
-    .chip {
+    .toolbar-group {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #f1f5f9;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 12px;
-      color: #334155;
+      font-size: 13px;
     }
-
-    .chip input {
-      width: 42px;
+    .toolbar select, .toolbar button, .toolbar input {
+      padding: 6px 10px;
       border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      padding: 2px 4px;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    .btn-calcular {
-      width: 100%;
-      margin-top: 14px;
-      padding: 10px;
-      background-color: #2563eb;
-      color: #ffffff;
-      border: none;
       border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13px;
+      background: white;
       cursor: pointer;
     }
+    .btn-primary { background: #2563eb !important; color: white; border: none !important; font-weight: 600; }
+    .btn-reset { background: #ef4444 !important; color: white; border: none !important; }
+    .btn-step { background: #d97706 !important; color: white; border: none !important; font-weight: 600; }
+    .btn-active { background: #f59e0b !important; color: white !important; font-weight: bold; }
 
-    .btn-calcular:hover {
-      background-color: #1d4ed8;
+    .canvas-container {
+      position: relative;
+      background: #ffffff;
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      height: 350px;
+      overflow: hidden;
+      user-select: none;
     }
+    .canvas-hint {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(241, 245, 249, 0.9);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #475569;
+      pointer-events: none;
+      border: 1px solid #cbd5e1;
+    }
+    svg { width: 100%; height: 100%; display: block; }
+
+    .node { cursor: pointer; }
+    .node circle { fill: #3b82f6; stroke: #1d4ed8; stroke-width: 2; transition: all 0.2s; }
+    .node.fuente circle { fill: #10b981; stroke: #047857; }
+    .node.sumidero circle { fill: #8b5cf6; stroke: #6d28d9; }
+    .node.selected circle { stroke: #f59e0b; stroke-width: 4; fill: #fbbf24; }
+    .node text { fill: white; font-weight: bold; font-size: 13px; text-anchor: middle; pointer-events: none; }
+    .node-title { fill: #334155 !important; font-size: 11px !important; font-weight: 600 !important; }
+
+    .edge line { stroke-width: 2; transition: stroke 0.3s; }
+    .edge.highlight line { stroke: #d97706 !important; stroke-width: 4 !important; }
+    .edge.saturated line { stroke: #ef4444 !important; stroke-width: 3 !important; }
+    .edge.active line { stroke: #2563eb !important; stroke-width: 3 !important; }
+    .edge-text { font-size: 11px; fill: #334155; font-weight: 600; text-anchor: middle; }
+    .edge-text.saturated { fill: #ef4444; font-weight: bold; }
+
+    .grid-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .panel {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fafafa;
+    }
+    .panel h4 { margin: 0 0 8px 0; font-size: 14px; color: #334155; }
+    
+    .edge-list { max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .edge-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 12px; }
+    .edge-item input { width: 55px; text-align: center; padding: 3px; border: 1px solid #cbd5e1; border-radius: 4px; }
+
+    .log-list { max-height: 140px; overflow-y: auto; font-size: 12px; margin: 0; padding-left: 18px; color: #475569; }
+    .log-list li { margin-bottom: 4px; }
+
+    .result-box {
+      margin-top: 16px;
+      padding: 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .result-box strong { font-size: 20px; color: #1e40af; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="header">
-      <div>
-        <h3>Red de Transporte</h3>
-      </div>
-      <div class="total-box">
-        <span>Flujo Máximo</span>
-        <strong id="flujo-maximo">--</strong>
-      </div>
+
+<div class="app-card">
+  <h2>Red de Flujo Personalizada (Ford-Fulkerson)</h2>
+  <div class="subtitle">Crea nodos haciendo clic en el lienzo y conéctalos para definir capacidades.</div>
+
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <label>Fuente (S):</label>
+      <select id="select-fuente" onchange="actualizarRoles()"></select>
     </div>
-
-    <div class="svg-container">
-      <svg viewBox="0 0 480 220" id="grafo-svg">
-        <defs>
-          <marker id="flecha" viewBox="0 0 10 10" refX="21" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
-          </marker>
-        </defs>
-        <g id="capa-aristas"></g>
-        <g id="capa-nodos"></g>
-      </svg>
+    <div class="toolbar-group">
+      <label>Sumidero (T):</label>
+      <select id="select-sumidero" onchange="actualizarRoles()"></select>
     </div>
-
-    <div class="controles-titulo">Ingreso manual de capacidades:</div>
-    <div class="controles" id="contenedor-controles"></div>
-
-    <button class="btn-calcular" id="btn-calcular">
-      Calcular Flujo Máximo
-    </button>
+    <button id="btn-modo-conectar" onclick="toggleModoConectar()">🔗 Modo Conectar: OFF</button>
+    <button onclick="generarGrafoAleatorio()">🎲 Generar grafo aleatorio</button>
+    <button class="btn-primary" onclick="resolverDirecto()">🚀 Calcular Flujo Directo</button>
+    <button class="btn-step" onclick="ejecutarPasoAPaso()">Siguiente Paso ➔</button>
+    <button class="btn-reset" onclick="limpiarTodo()">🗑️ Limpiar Red</button>
   </div>
 
-  <script>
-    const totalNodos = 6;
-    const fuente = 0;
-    const sumidero = 5;
+  <div class="canvas-container" id="canvas-container">
+    <div class="canvas-hint" id="canvas-hint">Haz clic aquí para agregar el primer nodo.</div>
+    <svg id="svg-canvas">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+        </marker>
+        <marker id="arrow-active" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+        </marker>
+        <marker id="arrow-sat" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+        </marker>
+        <marker id="arrow-step" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"/>
+        </marker>
+      </defs>
+      <g id="capa-aristas"></g>
+      <g id="capa-nodos"></g>
+    </svg>
+  </div>
 
-    const nodos = [
-      { id: 0, nombre: 'S', x: 45, y: 110, tipo: 'fuente' },
-      { id: 1, nombre: 'A', x: 160, y: 55, tipo: 'intermedio' },
-      { id: 2, nombre: 'B', x: 160, y: 165, tipo: 'intermedio' },
-      { id: 3, nombre: 'C', x: 300, y: 55, tipo: 'intermedio' },
-      { id: 4, nombre: 'D', x: 300, y: 165, tipo: 'intermedio' },
-      { id: 5, nombre: 'T', x: 435, y: 110, tipo: 'sumidero' }
-    ];
+  <div class="result-box">
+    <span>Flujo Máximo Total Calculado:</span>
+    <strong id="flujo-total-txt">--</strong>
+  </div>
 
-    const rutas = [
-      { de: 0, a: 1, cap: 10, flujo: 0 },
-      { de: 0, a: 2, cap: 10, flujo: 0 },
-      { de: 1, a: 2, cap: 2,  flujo: 0 },
-      { de: 1, a: 3, cap: 8,  flujo: 0 },
-      { de: 2, a: 4, cap: 9,  flujo: 0 },
-      { de: 3, a: 4, cap: 3,  flujo: 0 },
-      { de: 3, a: 5, cap: 7,  flujo: 0 },
-      { de: 4, a: 5, cap: 8,  flujo: 0 }
-    ];
+  <div class="grid-bottom">
+    <div class="panel">
+      <h4>⚙️ Capacidades de Aristas</h4>
+      <div class="edge-list" id="lista-aristas">
+        <div style="color: #94a3b8; font-size: 12px;">Crea conexiones para editar sus capacidades.</div>
+      </div>
+    </div>
 
-    let calculado = false;
+    <div class="panel">
+      <h4>📜 Bitácora de Pasos (Caminos Aumentantes)</h4>
+      <ul class="log-list" id="bitacora-log">
+        <li>Presiona un botón de cálculo para comenzar.</li>
+      </ul>
+    </div>
+  </div>
+</div>
 
-    const nodo = (id) => nodos.find(n => n.id === id);
-    const puntoMedio = (de, a, eje) => (nodo(de)[eje] + nodo(a)[eje]) / 2;
+<script>
+  let nodos = [];
+  let aristas = [];
+  let nodoOrigenConexion = null;
+  let modoConectar = false;
 
-    function renderGrafo() {
-      const capaAristas = document.getElementById('capa-aristas');
-      const capaNodos = document.getElementById('capa-nodos');
+  let pasoAEstado = null;
+  let flujoAcumuladoPaso = 0;
 
-      capaAristas.innerHTML = rutas.map(r => {
-        const u = nodo(r.de);
-        const v = nodo(r.a);
-        const saturado = calculado && r.flujo === r.cap && r.cap > 0;
-        let color = '#cbd5e1';
-        let grosor = 1.5;
+  const canvas = document.getElementById('canvas-container');
 
-        if (calculado && saturado) {
-          color = '#ef4444';
-          grosor = 2.5;
-        } else if (calculado && r.flujo > 0) {
-          color = '#3b82f6';
-          grosor = 2.5;
-        }
+  // Evento directo de clic en el contenedor
+  canvas.addEventListener('click', function(e) {
+    // Si dimos clic a un nodo (circle o text), ignorar la creación de nodo aquí
+    if (e.target.tagName === 'circle' || e.target.tagName === 'text') return;
+    if (modoConectar) return;
 
-        const midX = puntoMedio(r.de, r.a, 'x');
-        const midY = puntoMedio(r.de, r.a, 'y') - 6;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-        return `
-          <line x1="${u.x}" y1="${u.y}" x2="${v.x}" y2="${v.y}" stroke="${color}" stroke-width="${grosor}" marker-end="url(#flecha)"/>
-          <text x="${midX}" y="${midY}" class="txt-arista ${saturado ? 'saturado' : ''}">(${r.cap};${r.flujo})</text>
-        `;
-      }).join('');
+    const id = nodos.length;
+    const nombre = String.fromCharCode(65 + id); // A, B, C...
 
-      capaNodos.innerHTML = nodos.map(n => `
-        <circle cx="${n.x}" cy="${n.y}" r="16" class="nodo ${n.tipo}" />
-        <text x="${n.x}" y="${n.y + 4}" class="txt-nodo">${n.id}</text>
-        <text x="${n.x}" y="${n.y + 28}" class="txt-nombre">${n.nombre}</text>
-      `).join('');
+    nodos.push({ id, nombre, x, y });
+
+    actualizarSelectores();
+    resetPasoAPaso();
+    render();
+  });
+
+
+  // Genera una red aleatoria conservando el mismo editor visual del grafo.
+  function generarGrafoAleatorio() {
+    const entrada = prompt('¿Cuántos vértices deseas generar? (5 a 15)', '6');
+    if (entrada === null) return;
+
+    const n = Number(entrada);
+    if (!Number.isInteger(n) || n < 5 || n > 15) {
+      alert('Ingresa un número entero entre 5 y 15.');
+      return;
     }
 
-    function renderControles() {
-      const contenedor = document.getElementById('contenedor-controles');
-      contenedor.innerHTML = rutas.map((r, i) => `
-        <div class="chip">
-          <span>${r.de} &rarr; ${r.a}</span>
-          <input type="number" min="0" max="99" value="${r.cap}" data-index="${i}" />
+    const ancho = canvas.clientWidth;
+    const alto = canvas.clientHeight;
+    const centroX = ancho / 2;
+    const centroY = alto / 2;
+    const radioX = Math.max(40, Math.min(ancho * 0.40, 300));
+    const radioY = Math.max(40, Math.min(alto * 0.38, 125));
+
+    nodos = [];
+    aristas = [];
+    nodoOrigenConexion = null;
+    modoConectar = false;
+
+    document.getElementById('btn-modo-conectar').textContent = '🔗 Modo Conectar: OFF';
+    document.getElementById('btn-modo-conectar').className = '';
+
+    // Distribuye los vértices en círculo para evitar que se superpongan.
+    for (let i = 0; i < n; i++) {
+      const angulo = (2 * Math.PI * i / n) - Math.PI / 2;
+      nodos.push({
+        id: i,
+        nombre: String.fromCharCode(65 + i),
+        x: centroX + radioX * Math.cos(angulo),
+        y: centroY + radioY * Math.sin(angulo)
+      });
+    }
+
+    // Una ruta desde el primer hasta el último vértice garantiza conectividad S-T.
+    const pares = new Set();
+    for (let i = 0; i < n - 1; i++) {
+      const capacidad = Math.floor(Math.random() * 20) + 1;
+      aristas.push({ de: i, a: i + 1, cap: capacidad, flujo: 0 });
+      pares.add(`${Math.min(i, i + 1)}-${Math.max(i, i + 1)}`);
+    }
+
+    // Añade conexiones dirigidas aleatorias sin duplicar aristas ni crear bucles.
+    const maxAristas = Math.min(n * 2, n * (n - 1));
+    const objetivo = Math.min(maxAristas, (n - 1) + n + Math.floor(Math.random() * (n + 1)));
+    let intentos = 0;
+
+    while (aristas.length < objetivo && intentos < n * n * 4) {
+      intentos++;
+      const de = Math.floor(Math.random() * n);
+      const a = Math.floor(Math.random() * n);
+
+      // La pareja se guarda sin importar la dirección:
+      // si existe A -> B, no se permite generar B -> A.
+      const clave = `${Math.min(de, a)}-${Math.max(de, a)}`;
+
+      if (de === a || pares.has(clave)) continue;
+
+      pares.add(clave);
+      aristas.push({
+        de,
+        a,
+        cap: Math.floor(Math.random() * 20) + 1,
+        flujo: 0
+      });
+    }
+
+    actualizarSelectores();
+    document.getElementById('select-fuente').value = '0';
+    document.getElementById('select-sumidero').value = String(n - 1);
+
+    resetPasoAPaso();
+    render();
+  }
+
+  function toggleModoConectar() {
+    modoConectar = !modoConectar;
+    nodoOrigenConexion = null;
+    const btn = document.getElementById('btn-modo-conectar');
+    btn.textContent = modoConectar ? '🔗 Modo Conectar: ON' : '🔗 Modo Conectar: OFF';
+    btn.className = modoConectar ? 'btn-active' : '';
+    render();
+  }
+
+  function seleccionarNodo(id, event) {
+    if (event) event.stopPropagation();
+    if (!modoConectar) return;
+
+    if (nodoOrigenConexion === null) {
+      nodoOrigenConexion = id;
+    } else if (nodoOrigenConexion !== id) {
+      const existe = aristas.some(a => a.de === nodoOrigenConexion && a.a === id);
+      if (!existe) {
+        aristas.push({ de: nodoOrigenConexion, a: id, cap: null, flujo: 0 });
+      }
+      nodoOrigenConexion = null;
+    } else {
+      nodoOrigenConexion = null;
+    }
+    resetPasoAPaso();
+    render();
+  }
+
+  function actualizarSelectores() {
+    const selFuente = document.getElementById('select-fuente');
+    const selSumidero = document.getElementById('select-sumidero');
+
+    const valF = selFuente.value !== "" ? parseInt(selFuente.value) : 0;
+    const valS = selSumidero.value !== "" ? parseInt(selSumidero.value) : Math.max(0, nodos.length - 1);
+
+    selFuente.innerHTML = '';
+    selSumidero.innerHTML = '';
+
+    nodos.forEach(n => {
+      selFuente.add(new Option(`Nodo ${n.nombre} (${n.id})`, n.id));
+      selSumidero.add(new Option(`Nodo ${n.nombre} (${n.id})`, n.id));
+    });
+
+    if (nodos.length > 0) {
+      selFuente.value = Math.min(valF, nodos.length - 1);
+      selSumidero.value = Math.min(valS, nodos.length - 1);
+    }
+  }
+
+  function actualizarRoles() {
+    resetPasoAPaso();
+    render();
+  }
+
+  function resetPasoAPaso() {
+    pasoAEstado = null;
+    flujoAcumuladoPaso = 0;
+    aristas.forEach(a => a.flujo = 0);
+    document.getElementById('flujo-total-txt').textContent = '--';
+    document.getElementById('bitacora-log').innerHTML = '<li>Red modificada. Presiona un botón para calcular.</li>';
+  }
+
+  function limpiarTodo() {
+    nodos = [];
+    aristas = [];
+    nodoOrigenConexion = null;
+    modoConectar = false;
+    document.getElementById('btn-modo-conectar').textContent = '🔗 Modo Conectar: OFF';
+    document.getElementById('btn-modo-conectar').className = '';
+    actualizarSelectores();
+    resetPasoAPaso();
+    render();
+  }
+
+  function dfs(u, t, visitados, residual, flujoMin, camino) {
+    if (u === t) return { flujo: flujoMin, camino };
+    visitados[u] = true;
+
+    for (let v = 0; v < nodos.length; v++) {
+      if (!visitados[v] && residual[u][v] > 0) {
+        const resultado = dfs(v, t, visitados, residual, Math.min(flujoMin, residual[u][v]), [...camino, v]);
+        if (resultado.flujo > 0) return resultado;
+      }
+    }
+    return { flujo: 0, camino: [] };
+  }
+
+  function resolverDirecto() {
+    if (nodos.length < 2) return alert('Debes crear al menos 2 nodos.');
+    const s = parseInt(document.getElementById('select-fuente').value);
+    const t = parseInt(document.getElementById('select-sumidero').value);
+
+    if (s === t) return alert('La fuente y el sumidero no pueden ser el mismo nodo.');
+
+    const n = nodos.length;
+    const residual = Array.from({ length: n }, () => Array(n).fill(0));
+
+    aristas.forEach(a => {
+      const capVal = a.cap !== null ? a.cap : 0;
+      residual[a.de][a.a] = capVal;
+      a.flujo = 0;
+    });
+
+    let maxFlow = 0;
+    const log = document.getElementById('bitacora-log');
+    log.innerHTML = '';
+
+    while (true) {
+      const visitados = Array(n).fill(false);
+      const res = dfs(s, t, visitados, residual, Infinity, [s]);
+
+      if (res.flujo === 0) break;
+
+      for (let i = 0; i < res.camino.length - 1; i++) {
+        const u = res.camino[i];
+        const v = res.camino[i + 1];
+        residual[u][v] -= res.flujo;
+        residual[v][u] += res.flujo;
+      }
+
+      maxFlow += res.flujo;
+      const nombresCamino = res.camino.map(id => nodos[id].nombre).join(' ➔ ');
+      log.innerHTML += `<li>Ruta [${nombresCamino}]: +${res.flujo} unidades</li>`;
+    }
+
+    aristas.forEach(a => {
+      const capVal = a.cap !== null ? a.cap : 0;
+      a.flujo = capVal - residual[a.de][a.a];
+    });
+
+    document.getElementById('flujo-total-txt').textContent = `${maxFlow} u/h`;
+    render();
+  }
+
+  function ejecutarPasoAPaso() {
+    if (nodos.length < 2) return alert('Debes crear al menos 2 nodos.');
+    const s = parseInt(document.getElementById('select-fuente').value);
+    const t = parseInt(document.getElementById('select-sumidero').value);
+
+    if (s === t) return alert('La fuente y el sumidero no pueden ser el mismo nodo.');
+
+    const n = nodos.length;
+
+    if (!pasoAEstado) {
+      flujoAcumuladoPaso = 0;
+      const residual = Array.from({ length: n }, () => Array(n).fill(0));
+      aristas.forEach(a => {
+        residual[a.de][a.a] = a.cap !== null ? a.cap : 0;
+        a.flujo = 0;
+      });
+      pasoAEstado = residual;
+      document.getElementById('bitacora-log').innerHTML = '';
+    }
+
+    const visitados = Array(n).fill(false);
+    const res = dfs(s, t, visitados, pasoAEstado, Infinity, [s]);
+
+    const log = document.getElementById('bitacora-log');
+
+    if (res.flujo > 0) {
+      for (let i = 0; i < res.camino.length - 1; i++) {
+        const u = res.camino[i];
+        const v = res.camino[i + 1];
+        pasoAEstado[u][v] -= res.flujo;
+        pasoAEstado[v][u] += res.flujo;
+      }
+
+      flujoAcumuladoPaso += res.flujo;
+
+      aristas.forEach(a => {
+        const capVal = a.cap !== null ? a.cap : 0;
+        a.flujo = capVal - pasoAEstado[a.de][a.a];
+      });
+
+      const nombresCamino = res.camino.map(id => nodos[id].nombre).join(' ➔ ');
+      log.innerHTML += `<li><b>Paso:</b> Ruta [${nombresCamino}] aumenta +${res.flujo}</li>`;
+      document.getElementById('flujo-total-txt').textContent = `${flujoAcumuladoPaso} u/h (en proceso)`;
+
+      render(res.camino);
+    } else {
+      log.innerHTML += `<li style="color:#059669; font-weight:bold;">✔ Algoritmo finalizado. Flujo máximo final: ${flujoAcumuladoPaso} u/h</li>`;
+      document.getElementById('flujo-total-txt').textContent = `${flujoAcumuladoPaso} u/h`;
+      render();
+    }
+  }
+
+  function render(caminoResaltado = []) {
+    document.getElementById('canvas-hint').style.display = nodos.length === 0 ? 'block' : 'none';
+
+    const s = parseInt(document.getElementById('select-fuente').value || -1);
+    const t = parseInt(document.getElementById('select-sumidero').value || -1);
+
+    const capaAristas = document.getElementById('capa-aristas');
+    capaAristas.innerHTML = aristas.map((a, i) => {
+      const u = nodos[a.de];
+      const v = nodos[a.a];
+      const capVal = a.cap !== null ? a.cap : 0;
+      const saturada = a.flujo === capVal && capVal > 0;
+
+      let esDelCamino = false;
+      for (let k = 0; k < caminoResaltado.length - 1; k++) {
+        if (caminoResaltado[k] === a.de && caminoResaltado[k + 1] === a.a) {
+          esDelCamino = true;
+          break;
+        }
+      }
+
+      let claseEdge = 'edge';
+      let marker = 'url(#arrow)';
+      let color = '#94a3b8';
+
+      if (esDelCamino) {
+        claseEdge += ' highlight';
+        marker = 'url(#arrow-step)';
+      } else if (saturada) {
+        claseEdge += ' saturated';
+        marker = 'url(#arrow-sat)';
+      } else if (a.flujo > 0) {
+        claseEdge += ' active';
+        marker = 'url(#arrow-active)';
+      }
+
+      const midX = (u.x + v.x) / 2;
+      const midY = (u.y + v.y) / 2 - 8;
+      const capTexto = a.cap !== null ? a.cap : '_';
+
+      return `
+        <g class="${claseEdge}">
+          <line x1="${u.x}" y1="${u.y}" x2="${v.x}" y2="${v.y}" stroke="${color}" marker-end="${marker}"/>
+          <text x="${midX}" y="${midY}" class="edge-text ${saturada ? 'saturated' : ''}">
+            (${capTexto}, ${a.flujo})
+          </text>
+        </g>
+      `;
+    }).join('');
+
+    const capaNodos = document.getElementById('capa-nodos');
+    capaNodos.innerHTML = nodos.map(n => {
+      let claseNodo = 'node';
+      if (n.id === s) claseNodo += ' fuente';
+      else if (n.id === t) claseNodo += ' sumidero';
+      if (n.id === nodoOrigenConexion) claseNodo += ' selected';
+
+      return `
+        <g class="${claseNodo}" onclick="seleccionarNodo(${n.id}, event)">
+          <circle cx="${n.x}" cy="${n.y}" r="18"/>
+          <text x="${n.x}" y="${n.y + 4}">${n.nombre}</text>
+          <text x="${n.x}" y="${n.y + 32}" class="node-title">${n.id === s ? 'Fuente' : (n.id === t ? 'Sumidero' : '')}</text>
+        </g>
+      `;
+    }).join('');
+
+    const listaAristas = document.getElementById('lista-aristas');
+    if (aristas.length === 0) {
+      listaAristas.innerHTML = '<div style="color: #94a3b8; font-size: 12px;">Crea conexiones para editar sus capacidades.</div>';
+    } else {
+      listaAristas.innerHTML = aristas.map((a, i) => `
+        <div class="edge-item">
+          <span>Nodo <b>${nodos[a.de].nombre}</b> &rarr; Nodo <b>${nodos[a.a].nombre}</b></span>
+          <div>
+            <label>Cap: </label>
+            <input 
+              type="number" 
+              min="0" 
+              placeholder="0"
+              value="${a.cap !== null ? a.cap : ''}" 
+              oninput="actualizarCapacidad(${i}, this.value)"
+            />
+          </div>
         </div>
       `).join('');
-
-      contenedor.querySelectorAll('input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.dataset.index);
-          rutas[idx].cap = parseInt(e.target.value) || 0;
-          calculado = false;
-          rutas.forEach(r => r.flujo = 0);
-          document.getElementById('flujo-maximo').textContent = '--';
-          renderGrafo();
-        });
-      });
     }
-    function dfs(u, t, visitados, residual, flujoMin) {
-      if (u === t) return flujoMin;
-      visitados[u] = true;
+  }
 
-      for (let v = 0; v < totalNodos; v++) {
-        if (!visitados[v] && residual[u][v] > 0) {
-          const cuello = dfs(v, t, visitados, residual, Math.min(flujoMin, residual[u][v]));
-          if (cuello > 0) {
-            residual[u][v] -= cuello;
-            residual[v][u] += cuello;
-            return cuello;
-          }
-        }
-      }
-      return 0;
-    }
+  function actualizarCapacidad(index, valor) {
+    const num = parseInt(valor);
+    aristas[index].cap = isNaN(num) ? null : Math.max(0, num);
+    resetPasoAPaso();
+    render();
+  }
 
-    function resolver() {
-      const residual = Array.from({ length: totalNodos }, () => Array(totalNodos).fill(0));
-      rutas.forEach(r => {
-        residual[r.de][r.a] = r.cap;
-        r.flujo = 0;
-      });
-
-      let maxFlow = 0;
-
-      while (true) {
-        const visitados = Array(totalNodos).fill(false);
-        const cuello = dfs(fuente, sumidero, visitados, residual, Infinity);
-        if (cuello === 0) break;
-        maxFlow += cuello;
-      }
-
-      rutas.forEach(r => {
-        r.flujo = r.cap - residual[r.de][r.a];
-      });
-
-      calculado = true;
-      document.getElementById('flujo-maximo').textContent = `${maxFlow} u/h`;
-      renderGrafo();
-    }
-
-    document.getElementById('btn-calcular').addEventListener('click', resolver);
-
-    renderGrafo();
-    renderControles();
-  </script>
+  render();
+</script>
 </body>
 </html>
