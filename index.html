@@ -202,10 +202,7 @@
   let flujoAcumuladoPaso = 0;
 
   const canvas = document.getElementById('canvas-container');
-
-  // Evento directo de clic en el contenedor
   canvas.addEventListener('click', function(e) {
-    // Si dimos clic a un nodo (circle o text), ignorar la creación de nodo aquí
     if (e.target.tagName === 'circle' || e.target.tagName === 'text') return;
     if (modoConectar) return;
 
@@ -214,7 +211,7 @@
     const y = e.clientY - rect.top;
 
     const id = nodos.length;
-    const nombre = String.fromCharCode(65 + id); // A, B, C...
+    const nombre = String.fromCharCode(65 + id);
 
     nodos.push({ id, nombre, x, y });
 
@@ -222,9 +219,6 @@
     resetPasoAPaso();
     render();
   });
-
-
-  // Genera una red aleatoria conservando el mismo editor visual del grafo.
   function generarGrafoAleatorio() {
     const entrada = prompt('¿Cuántos vértices deseas generar? (5 a 15)', '6');
     if (entrada === null) return;
@@ -249,8 +243,6 @@
 
     document.getElementById('btn-modo-conectar').textContent = '🔗 Modo Conectar: OFF';
     document.getElementById('btn-modo-conectar').className = '';
-
-    // Distribuye los vértices en círculo para evitar que se superpongan.
     for (let i = 0; i < n; i++) {
       const angulo = (2 * Math.PI * i / n) - Math.PI / 2;
       nodos.push({
@@ -260,16 +252,12 @@
         y: centroY + radioY * Math.sin(angulo)
       });
     }
-
-    // Una ruta desde el primer hasta el último vértice garantiza conectividad S-T.
     const pares = new Set();
     for (let i = 0; i < n - 1; i++) {
       const capacidad = Math.floor(Math.random() * 20) + 1;
       aristas.push({ de: i, a: i + 1, cap: capacidad, flujo: 0 });
       pares.add(`${Math.min(i, i + 1)}-${Math.max(i, i + 1)}`);
     }
-
-    // Añade conexiones dirigidas aleatorias sin duplicar aristas ni crear bucles.
     const maxAristas = Math.min(n * 2, n * (n - 1));
     const objetivo = Math.min(maxAristas, (n - 1) + n + Math.floor(Math.random() * (n + 1)));
     let intentos = 0;
@@ -278,9 +266,6 @@
       intentos++;
       const de = Math.floor(Math.random() * n);
       const a = Math.floor(Math.random() * n);
-
-      // La pareja se guarda sin importar la dirección:
-      // si existe A -> B, no se permite generar B -> A.
       const clave = `${Math.min(de, a)}-${Math.max(de, a)}`;
 
       if (de === a || pares.has(clave)) continue;
